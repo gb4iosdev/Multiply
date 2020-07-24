@@ -23,7 +23,7 @@ struct ContentView: View {
     private let quantityOptions = ["5", "10", "20", "All"]
     
     let maxMultiplicationTable = 12 //Can only do up to 12 x table
-    let eachTableMaximum = 10       //Can only multiply up to 12 for each table
+    let maximumMultiplier = 10       //Can only multiply up to 12 for each table
     
     @State private var questions: [Question] = []
     @State private var currentQuestionIndex = 0
@@ -98,12 +98,12 @@ struct ContentView: View {
         let chosenQuantity = quantityOptions[questionQuantityIndex]
         if let questionQuantity = Int(chosenQuantity) { //We have a fixed range
             for _ in 1...questionQuantity {
-                let randomNumber = Int.random(in: 1...eachTableMaximum)
+                let randomNumber = Int.random(in: 1...maximumMultiplier)
                 let answer = randomNumber * selectedMultiplicationTable
                 questions.append(Question(question: randomNumber, answer: answer))
             }
-        } else {    //All option chosen.  We need to loop until we fill up all the options
-            let questionSet = Array(1...eachTableMaximum).shuffled()
+        } else {    //All option chosen.  Need to simply randomize an array from 1...maximumMultiplier
+            let questionSet = Array(1...maximumMultiplier).shuffled()
             for item in questionSet {
                 let answer = item * selectedMultiplicationTable
                 questions.append(Question(question: item, answer: answer))
