@@ -8,10 +8,6 @@
 
 import SwiftUI
 
-struct Question {
-    var question: Int
-    var answer: Int
-}
 
 struct ContentView: View {
     
@@ -25,9 +21,24 @@ struct ContentView: View {
     let maxMultiplicationTable = 12 //Can only do up to 12 x table
     let maximumMultiplier = 10       //Can only multiply up to 12 for each table
     
+    private var tableIncrementable: Bool {
+        selectedMultiplicationTable < maxMultiplicationTable
+    }
+    private var tableDecrementable: Bool {
+        selectedMultiplicationTable > 1
+    }
+    private var questionQuantityIncrementable: Bool {
+        questionQuantityIndex < quantityOptions.count - 1
+    }
+    private var questionQuantityDecrementable: Bool {
+        questionQuantityIndex > 0
+    }
+    
     @State private var questions: [Question] = []
     @State private var currentQuestionIndex = 0
     @State private var userAnswer: String = ""
+    @State private var savedAnswer: String = ""
+    @State private var answerPointer: Int = 0
     
     @State private var score = 0
     
@@ -35,60 +46,128 @@ struct ContentView: View {
         VStack {
             if gameActive {
                 NavigationView {
-                    VStack {
-                        
-                        Text("What is: \(questions[currentQuestionIndex].question) x \(selectedMultiplicationTable) ?")
-                            .opacity(endOfGame ? 0 : 1)
-                        TextField("Answer?", text: $userAnswer, onCommit: {
-                            self.processAnswer()
-                        })
-                        .keyboardType(.decimalPad)
-                        .textFieldStyle(RoundedBorderTextFieldStyle())
-                        .padding()
-                        .opacity(endOfGame ? 0 : 1)
-                        Text("Score is \(score) / \(currentQuestionIndex)")
-                        Text("Total number of questions: \(questions.count)")
+                    ZStack {
+                        LinearGradient(gradient: Gradient(colors: [.white, .blue]), startPoint: .top, endPoint: .bottomTrailing).edgesIgnoringSafeArea(.all)
                         VStack {
-                            Button("Settings") {
-                                self.gameActive = false
+                            HStack {
+                                Button(action: {
+                                    self.gameActive = false
+                                }) {
+                                    NavigationButtonImage(title: "Settings", colour: .black)
+                                }
+                                Spacer()
+                                Button(action: {
+                                    self.reset()
+                                }) {
+                                    NavigationButtonImage(title: "Again?", colour: .black)
+                                }
+                                .opacity(endOfGame ? 1 : 0)
                             }
-                            Button("Play Again") {
-                                self.reset()
+                            HStack(alignment: .bottom) {
+                                LargeNumberText(title: "\(questions[currentQuestionIndex].question)", colour: .green)
+                                Text("X")
+                                    .font(.system(size: 40, weight: .bold))
+                                    .padding(15)
+                                    .foregroundColor(.green)
+                                LargeNumberText(title: "\(selectedMultiplicationTable)", colour: .green)
                             }
-                            .opacity(endOfGame ? 1 : 0)
+                            .opacity(endOfGame ? 0 : 1)
+                            Text("User entered: \(savedAnswer)")
+                            Group {
+                                VStack {
+                                    ForEach(0 ..< 3) { row in
+                                        HStack {
+                                            ForEach(0 ..< 3) {column in
+                                                Button(action: {
+                                                    let ans = (row * 3 + column + 1).description
+                                                    self.userAnswer = ans
+                                                    self.processAnswer()
+                                                }) {
+                                                NumberButtonImage(title: "\(row * 3 + column + 1)", colour: .black)
+                                                }
+                                            }
+                                        }
+                                    }
+                                }.disabled(endOfGame)
+                                Button(action: {
+                                    self.userAnswer = "0"
+                                    self.processAnswer()
+                                }) {
+                                NumberButtonImage(title: "0", colour: .black)
+                                }
+                            }
+                            Text("Score is \(score) / \(currentQuestionIndex)")
+                            Text("Total number of questions: \(questions.count)")
+                            Text("End of game is: \(endOfGame.description)")
                         }
-                        Text("End of game is: \(endOfGame.description)")
+                        .navigationBarTitle(Text("Multiply").font(.footnote).foregroundColor(.green))
                     }
-                    .navigationBarTitle("Multiply")
                 }
             } else {
                 NavigationView {
-                    VStack {
-                        Spacer()
-                        Stepper("Multiplication Table", value: $selectedMultiplicationTable, in: 1...maxMultiplicationTable)
-                            .padding()
-                        
-                        Text("Table: \(selectedMultiplicationTable)")
-                        Spacer()
-                        
-                        Section(header: Text("Select Number of Questions:")) {
-                            Picker("", selection: $questionQuantityIndex) {
-                                ForEach(0..<quantityOptions.count) {
-                                    Text(self.quantityOptions[$0])
+                    ZStack {
+                        LinearGradient(gradient: Gradient(colors: [.white, .blue]), startPoint: .top, endPoint: .bottomTrailing).edgesIgnoringSafeArea(.all)
+                        VStack {
+                            Section {
+                                Spacer()
+                                Spacer()
+                                Spacer()
+                                LargeNumberText(title: "\(selectedMultiplicationTable)", colour: .green)
+                                Text("Times Table")
+                                .foregroundColor(.green)
+                                HStack {
+                                    Button(action: {
+                                        self.selectedMultiplicationTable -= 1
+                                    }) {
+                                        ButtonImage(imageSymbolName: "arrowtriangle.down.fill")
+                                        .offset(x: 0, y: 2)
+                                    }
+                                    .pushButtonStyle(colour: .green)
+                                    .disabled(tableDecrementable ? false : true)
+                                    .opacity(tableDecrementable ? 1 : 0.5)
+                                    Button(action: {
+                                        self.selectedMultiplicationTable += 1
+                                        }) {
+                                            ButtonImage(imageSymbolName: "arrowtriangle.up.fill")
+                                        }
+                                    .pushButtonStyle(colour: .green)
+                                    .disabled(tableIncrementable ? false : true)
+                                    .opacity(tableIncrementable ? 1 : 0.5)
                                 }
-                            }.pickerStyle(SegmentedPickerStyle())
-                            .padding()
+                            }
+                            Spacer()
+                            LargeNumberText(title: "\(quantityOptions[questionQuantityIndex])", colour: .red)
+                            Text("Questions")
+                            .foregroundColor(.red)
+                            HStack {
+                                Button(action: {
+                                    self.questionQuantityIndex -= 1
+                                }) {
+                                    ButtonImage(imageSymbolName: "arrowtriangle.down.fill")
+                                    .offset(x: 0, y: 2)
+                                }
+                                .pushButtonStyle(colour: .red)
+                                .disabled(questionQuantityDecrementable ? false : true)
+                                .opacity(questionQuantityDecrementable ? 1 : 0.5)
+                                Button(action: {
+                                    self.questionQuantityIndex += 1
+                                    }) {
+                                        ButtonImage(imageSymbolName: "arrowtriangle.up.fill")
+                                    }
+                                .pushButtonStyle(colour: .red)
+                                .disabled(questionQuantityIncrementable ? false : true)
+                                .opacity(questionQuantityIncrementable ? 1 : 0.5)
+                            }
+                            Button(action: {
+                                self.reset()
+                                self.gameActive = true
+                            }) {
+                                NavigationButtonImage(title: "Start", colour: .black)
+                            }
+                            Text("GameActive is:\(gameActive ? "True" : "False")")
                         }
-                        .padding(EdgeInsets(top: 0, leading: 0, bottom: 30, trailing: 0))
-                        Text("Number of Questions: \(quantityOptions[questionQuantityIndex])")
-                        Spacer()
-                        Button("Get Started") {
-                            self.reset()
-                            self.gameActive = true
-                        }
-                        Text("GameActive is:\(gameActive ? "True" : "False")")
+                        .navigationBarTitle("Multiply - Settings")
                     }
-                    .navigationBarTitle("Multiply - Settings")
                 }
             }
         }
@@ -117,24 +196,113 @@ struct ContentView: View {
         score = 0
         currentQuestionIndex = 0
         endOfGame = false
+        answerPointer = 0
         loadQuestions()
     }
     
     func processAnswer() {
-        if let answer = Int(self.userAnswer), answer == questions[currentQuestionIndex].answer {
-            score += 1
-        }
-        if currentQuestionIndex < questions.count - 1 {
-            currentQuestionIndex += 1
+        savedAnswer = userAnswer
+        let currentQuestion = questions[currentQuestionIndex]
+        guard answerPointer < currentQuestion.answerChars.count else { return }
+        let increment = currentQuestionIndex == questions.count - 1 ? 0 : 1
+        
+        if String(currentQuestion.answerChars[answerPointer]) == userAnswer {
+            if answerPointer == currentQuestion.answerChars.count - 1 {  //answer is correct
+                score += 1
+                currentQuestionIndex += increment
+            } else {
+                return      //still processing digits on this question
+            }
         } else {
+            currentQuestionIndex += increment   //User got it wrong
+        }
+        
+        if increment == 0 {
             endOfGame = true
         }
         userAnswer = ""
+        answerPointer = 0
     }
 }
 
 struct ContentView_Previews: PreviewProvider {
     static var previews: some View {
         ContentView()
+    }
+}
+
+struct Question {
+    var question: Int
+    var answer: Int
+    var answerChars: [String.Element] {
+        Array(answer.description)
+    }
+}
+
+struct ButtonImage: View {
+    var imageSymbolName: String
+    
+    var body: some View {
+        Image(systemName: imageSymbolName)
+        .renderingMode(nil)
+        .foregroundColor(.white)
+        .font(.largeTitle)
+    }
+}
+
+struct PushButton: ViewModifier {
+    var colour: Color
+    func body(content: Content) -> some View {
+        content
+            .frame(width: 70, height: 70)
+            .background(colour)
+            .foregroundColor(.white)
+            .clipShape(Circle())
+            .padding(40)
+    }
+}
+
+extension View {
+    func pushButtonStyle(colour: Color) -> some View {
+        self.modifier(PushButton(colour: colour))
+    }
+}
+
+struct LargeNumberText: View {
+    let title: String
+    let colour: Color
+    var body: some View {
+        Text(title)
+        .font(.system(size: 80, weight: .bold))
+        .foregroundColor(colour)
+        .padding(5)
+    }
+}
+
+struct NavigationButtonImage: View {
+    let title: String
+    let colour: Color
+    var body: some View {
+        Text(title)
+        .frame(width: 100, height: 100)
+        .font(.system(size: 25))
+        .background(colour)
+        .foregroundColor(.white)
+        .clipShape(Circle())
+        .padding(10)
+    }
+}
+
+struct NumberButtonImage: View {
+    let title: String
+    let colour: Color
+    var body: some View {
+        Text(title)
+        .frame(width: 100, height: 100)
+            .font(.system(size: 30))
+        .background(colour)
+        .foregroundColor(.white)
+        .clipShape(Circle())
+        .padding(5)
     }
 }
